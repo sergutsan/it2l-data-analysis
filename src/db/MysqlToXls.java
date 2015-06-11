@@ -1,17 +1,30 @@
 package db;
 
-import java.io.*;
-import java.sql.*;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Scanner;
+import java.util.Set;
 
-import org.apache.poi.hssf.usermodel.*;
+import org.apache.poi.hssf.usermodel.HSSFRichTextString;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-
-import java.util.*;
-import java.util.Map.Entry;
 
 public class MysqlToXls {
 
@@ -264,25 +277,3 @@ public class MysqlToXls {
 	}
 }
 
-class ConnectionData {
-	public String dbName;
-	public String login;
-	public String password;
-	public String hostname;
-	public String port;
-	
-	public ConnectionData(String filename) throws IOException {
-		try {
-			BufferedReader in = new BufferedReader(new FileReader(new File(filename)));
-			this.dbName   = in.readLine();
-			this.login    = in.readLine();
-			this.password = in.readLine();
-			this.hostname = in.readLine();
-			this.port     = in.readLine();
-			in.close();
-		} catch (IOException e) {
-			System.out.println("Invalid connection data file: " + filename + ".");
-			throw new IOException(e);
-		}
-	}
-}

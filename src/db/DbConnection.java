@@ -1,5 +1,8 @@
 package db;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -27,7 +30,27 @@ public class DbConnection {
 		}
 	}
 	
-	
-	
+}
 
+class ConnectionData {
+	public String dbName;
+	public String login;
+	public String password;
+	public String hostname;
+	public String port;
+	
+	public ConnectionData(String filename) throws IOException {
+		try {
+			BufferedReader in = new BufferedReader(new FileReader(new File(filename)));
+			this.dbName   = in.readLine();
+			this.login    = in.readLine();
+			this.password = in.readLine();
+			this.hostname = in.readLine();
+			this.port     = in.readLine();
+			in.close();
+		} catch (IOException e) {
+			System.out.println("Invalid connection data file: " + filename + ".");
+			throw new IOException(e);
+		}
+	}
 }
