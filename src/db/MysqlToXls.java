@@ -15,24 +15,11 @@ import java.util.Map.Entry;
 
 public class MysqlToXls {
 
-	private String convertListInStr(List<String>columns){
-		String res = "";
-		if(columns!=null && columns.size()>0){
-			for(String str: columns){
-				res+= res+str+",";
-			}
-			res = res.substring(0, res.length()-1);
-		}else{
-			res = "*";
-		}
-		return res;
-	}
-	
-	public List<Map<String, String>> makeConsult(String where) throws SQLException, ClassNotFoundException, IOException {
+	public List<Map<String, String>> makeQuery(String wherePartOfQuery) throws SQLException, ClassNotFoundException, IOException {
 		List<Map<String, String>> res = new LinkedList<Map<String, String>>();
 		// Execute SQL query
 
-		PreparedStatement stmt = DbConnection.getConnection().prepareStatement("select exercisequiz.*, user.user, user.cond from exercisequiz join user on exercisequiz.id_user = user.id_user where "+ where);
+		PreparedStatement stmt = DbConnection.getConnection().prepareStatement("select exercisequiz.*, user.user, user.cond from exercisequiz join user on exercisequiz.id_user = user.id_user where "+ wherePartOfQuery);
 		ResultSet rs = stmt.executeQuery();
 
 		// Get the list of column names and store them as the first
@@ -193,7 +180,7 @@ public class MysqlToXls {
 	 */
 	public static void generateXls(String tablename, String filename, String wherePartOfSqlStatementToGetData) throws Exception {
 		MysqlToXls mysqlToXls = new MysqlToXls();
-		List<Map<String, String>> resultados = mysqlToXls.makeConsult(wherePartOfSqlStatementToGetData);// or typeQuiz = 1");
+		List<Map<String, String>> resultados = mysqlToXls.makeQuery(wherePartOfSqlStatementToGetData);// or typeQuiz = 1");
 		
 		// Create new Excel workbook and sheet
 		HSSFWorkbook xlsWorkbook = new HSSFWorkbook();
