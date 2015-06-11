@@ -20,7 +20,7 @@ public class MysqlToXls {
 	public MysqlToXls() throws ClassNotFoundException, SQLException, IOException {
 		// Access DB old-style, with JDBC
 		Class.forName("com.mysql.jdbc.Driver");
-		ConnectionData cd = new ConnectionData("../connectionData.txt");
+		ConnectionData cd = new ConnectionData("./connectionData.txt");
 		String params = "?useUnicode=true&amp;characterEncoding=UTF8";
 		String url = "jdbc:mysql://" + cd.hostname + ":" + cd.port + "/" + cd.dbName + params; 
 		connection = DriverManager.getConnection(url, cd.login, cd.password);
