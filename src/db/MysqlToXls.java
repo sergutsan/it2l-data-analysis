@@ -32,7 +32,8 @@ public class MysqlToXls {
 		List<Map<String, String>> res = new LinkedList<Map<String, String>>();
 		// Execute SQL query
 
-		PreparedStatement stmt = DbConnection.getConnection().prepareStatement("select exercisequiz.*, user.user, user.cond from exercisequiz join user on exercisequiz.id_user = user.id_user where "+ wherePartOfQuery);
+		String sqlQuery = "select exercisequiz.*, user.user, user.cond from exercisequiz join user on exercisequiz.id_user = user.id_user where "+ wherePartOfQuery;
+		PreparedStatement stmt = DbConnection.getConnection().prepareStatement(sqlQuery);
 		ResultSet rs = stmt.executeQuery();
 
 		// Get the list of column names and store them as the first
@@ -128,20 +129,6 @@ public class MysqlToXls {
         } 
     }
 	
-	public static boolean isJSONValid(String json) {
-		boolean result = false;
-	    try {
-	    	JsonParser parser = new JsonParser();
-			JsonElement obj = parser.parse(json);
-			if(obj != null){
-				result = true;
-			}
-	    } catch (Exception ex) {
-	    	ex.printStackTrace();
-	    }
-	    return result;
-	}
-	
 	private static List<String> getColumnsName(List<Map<String, String>> resultados, String wherePartOfSqlStatementToGetData){
 		LinkedList<String> names = new LinkedList<String>();
 		for(Map<String, String> map : resultados){
@@ -175,15 +162,6 @@ public class MysqlToXls {
 		return names;
 	}
 	
-	public static String getData(List<Map<String, String>> lista, String keyname, int index){
-		String val = "";
-		if(index < lista.size()){
-			Map<String, String> map = lista.get(index);
-			val = map.get(keyname);
-		}
-		return val;
-	}
-
 	/**
 	 * 
 	 * @param tablename
@@ -191,7 +169,7 @@ public class MysqlToXls {
 	 * @param wherePartOfSqlStatementToGetData sorry for name
 	 * @throws Exception
 	 */
-	public static void generateXls(String tablename, String filename, String wherePartOfSqlStatementToGetData) throws Exception {
+	public void generateXls(String tablename, String filename, String wherePartOfSqlStatementToGetData) throws Exception {
 		MysqlToXls mysqlToXls = new MysqlToXls();
 		List<Map<String, String>> resultados = mysqlToXls.makeQuery(wherePartOfSqlStatementToGetData);// or typeQuiz = 1");
 		
@@ -270,7 +248,8 @@ public class MysqlToXls {
 					}
 				}
 			}
-			MysqlToXls.generateXls("", "data.xls", "exercisequiz.typeQuiz = " + number);		
+			MysqlToXls thisObject = new MysqlToXls();
+			thisObject.generateXls("", "data.xls", "exercisequiz.typeQuiz = " + number);		
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
