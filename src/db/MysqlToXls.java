@@ -17,13 +17,16 @@ public class MysqlToXls {
 
 	private Connection connection = null;
 
-	public MysqlToXls() throws ClassNotFoundException, SQLException, IOException {
-		// Access DB old-style, with JDBC
-		Class.forName("com.mysql.jdbc.Driver");
-		ConnectionData cd = new ConnectionData("./connectionData.txt");
-		String params = "?useUnicode=true&amp;characterEncoding=UTF8";
-		String url = "jdbc:mysql://" + cd.hostname + ":" + cd.port + "/" + cd.dbName + params; 
-		connection = DriverManager.getConnection(url, cd.login, cd.password);
+	private Connection getConnection() throws ClassNotFoundException, SQLException, IOException {
+		if (connection == null) {
+			// Access DB old-style, with JDBC
+			Class.forName("com.mysql.jdbc.Driver");
+			ConnectionData cd = new ConnectionData("./connectionData.txt");
+			String params = "?useUnicode=true&amp;characterEncoding=UTF8";
+			String url = "jdbc:mysql://" + cd.hostname + ":" + cd.port + "/" + cd.dbName + params; 
+			connection = DriverManager.getConnection(url, cd.login, cd.password);
+		}
+		return connection;
 	}
 
 	private String convertListInStr(List<String>columns){
@@ -45,7 +48,7 @@ public class MysqlToXls {
 		// Execute SQL query
 
 		PreparedStatement stmt =
-				connection.prepareStatement("select exercisequiz.*, user.user, user.cond from exercisequiz join user on exercisequiz.id_user = user.id_user where "+ where);
+				getConnection().prepareStatement("select exercisequiz.*, user.user, user.cond from exercisequiz join user on exercisequiz.id_user = user.id_user where "+ where);
 		ResultSet rs = stmt.executeQuery();
 
 		// Get the list of column names and store them as the first
@@ -73,8 +76,10 @@ public class MysqlToXls {
 	}
 
 	// Close database connection
-	public void close() throws SQLException {
-		connection.close();
+	public void closeConnection() throws SQLException {
+		if (this.connection != null) {
+			connection.close();
+		}
 	}
 	
 	/**
@@ -209,12 +214,10 @@ public class MysqlToXls {
 	 * @throws Exception
 	 */
 	public static void generateXls(String tablename, String filename, String wherePartOfSqlStatementToGetData) throws Exception {
-
 		MysqlToXls mysqlToXls = new MysqlToXls();
-
 		List<Map<String, String>> resultados = mysqlToXls.makeConsult(wherePartOfSqlStatementToGetData);// or typeQuiz = 1");
-
-		mysqlToXls.close();
+		mysqlToXls.closeConnection();
+		
 		// Create new Excel workbook and sheet
 		HSSFWorkbook xlsWorkbook = new HSSFWorkbook();
 		HSSFSheet xlsSheet = xlsWorkbook.createSheet();
