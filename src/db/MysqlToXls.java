@@ -18,6 +18,7 @@ import java.util.Set;
 
 import org.apache.poi.hssf.usermodel.HSSFRichTextString;
 import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFCell;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 
@@ -32,7 +33,7 @@ public class MysqlToXls {
 		List<Map<String, String>> res = new LinkedList<Map<String, String>>();
 		// Execute SQL query
 
-		String sqlQuery = "select exercisequiz.*, user.user, user.cond from exercisequiz join user on exercisequiz.id_user = user.id_user where "+ wherePartOfQuery;
+		String sqlQuery = "select exercisequiz.*, user.user, user.cond from exercisequiz join user on exercisequiz.id_user = user.id_user where "+ wherePartOfQuery; // + " and exercisequiz.id_exercisequiz = 1890";
 		PreparedStatement stmt = DbConnection.getConnection().prepareStatement(sqlQuery);
 		ResultSet rs = stmt.executeQuery();
 
@@ -184,6 +185,7 @@ public class MysqlToXls {
 		HSSFRow titleRow = xlsSheet.createRow(rowIndex++);
 		int i = 0;
  		for (String colN : colNames) {
+			System.out.println("** " + colN);
 			titleRow.createCell((short) (i)).setCellValue(new HSSFRichTextString(colN));
 			xlsSheet.setColumnWidth((short) (i), (short) 4000);
 			i++;
@@ -192,34 +194,61 @@ public class MysqlToXls {
 			HSSFRow dataRow = xlsSheet.createRow(rowIndex++);
 			short colIndex = 0;
 			int colInd2 = 0;
+			String value = "";
 			for (String colName : colNames) {
-				String value = "";
 				//System.out.println("Column: " + colName);
 				if (colName.contains("pre")|| colName.contains("pos")){
 					colName = colName.split("-")[0];
 					String id = mapping.get("id_exercisequiz");
 					String jsonValueInDB = mapping.get("jsonval");
-					if ("1890".equals(id) || "1879".equals(id)) {
+					if ("1890".equals(id)) {
 					    System.out.println("ID: " + id);
 					    System.out.println("JSON value: " + jsonValueInDB);
 					}
 					List<Map<String, String>> lista = MysqlToXls.processStringJson(jsonValueInDB,wherePartOfSqlStatementToGetData);
-					if (colInd2 < lista.size()) {
-						value = lista.get(colInd2++).get(colName);
-						if ("1890".equals(id) || "1879".equals(id)) {
-							System.out.println("Column name: " + colName + " Value: " + value);
-						}
-					}
+					value = getItem(lista, colName);
+//					if (colInd2 < lista.size()) {
+//						value = lista.get(colInd2++).get(colName);
+//						if ("1890".equals(id) || "1879".equals(id)) {
+//							System.out.println("Column name: " + colName + " Value: " + value);
+//						}
+//					}
 				} else {
 					value = mapping.get(colName);
 				}
-				dataRow.createCell(colIndex++).setCellValue(new HSSFRichTextString(value));
+				
+				HSSFCell cell = dataRow.createCell(colIndex++);
+				
+				if(value.equals("") == false)
+				{
+					cell.setCellValue(new HSSFRichTextString(value));
+				}
 			}
 		}
 
 		// Write to disk
 		xlsWorkbook.write(new FileOutputStream(filename));
 		xlsWorkbook.close();
+	}
+	
+	private String getItem(List<Map<String, String>> list, String key)
+	{
+		Iterator<Map<String, String>> iterator = list.iterator();
+
+		boolean found = false;
+		String value = "";
+		
+		while (iterator.hasNext() && found == false)
+		{
+			Map<String, String> map = iterator.next();
+			if(map.containsKey(key))
+			{
+				value = (String)map.get(key);
+				found = true;
+			}
+		}
+		
+		return value;
 	}
 
 	public static void main(String[] args) {
