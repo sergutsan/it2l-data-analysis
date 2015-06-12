@@ -254,5 +254,29 @@ public class MysqlToXls {
 			e.printStackTrace();
 		}
 	}
+
+    /** A test method to expose a bug **/
+    public static void mainTest(String[] args) {
+
+	String wherePartOfSqlStatementToGetData = "exercisequiz.typeQuiz = 0";
+	String testJsonVal = "{\"question1\":\"5\",\"question3\":\"4\",\"question4\":\"5\",\"question5\":\"5\",\"question6\":\"3\",\"question8\":\"2\",\"question9\":\"2\",\"question10\":\"1\",\"question11\":\"1\",\"question7\":[1,2]}";
+	List<Map<String, String>> lista = MysqlToXls.processStringJson(testJsonVal,wherePartOfSqlStatementToGetData);
+	
+		
+	for(Map<String, String> map2 : lista){
+	    Set<String> setit2 = map2.keySet();
+	    Iterator<String> it2 = setit2.iterator();
+	    while(it2.hasNext()){
+		String jsonKey = it2.next();
+		String added="-pre";
+		String tableKey = jsonKey+added;
+		System.out.println(tableKey);
+		System.out.println(map2.get(jsonKey));
+	    }
+			
+	
+
+	}
+    }
 }
 
