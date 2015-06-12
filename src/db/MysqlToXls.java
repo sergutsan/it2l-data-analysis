@@ -1,39 +1,54 @@
 package db;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Scanner;
-import java.util.Set;
+import java.io.*;
+import java.sql.*;
 
-import org.apache.poi.hssf.usermodel.HSSFRichTextString;
-import org.apache.poi.hssf.usermodel.HSSFRow;
-import org.apache.poi.hssf.usermodel.HSSFSheet;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.hssf.usermodel.*;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import java.util.*;
+import java.util.Map.Entry;
+
 public class MysqlToXls {
 
-	public List<Map<String, String>> makeQuery(String wherePartOfQuery) throws SQLException, ClassNotFoundException, IOException {
+	private Connection connection = null;
+
+	private Connection getConnection() throws ClassNotFoundException, SQLException, IOException {
+		if (connection == null) {
+			// Access DB old-style, with JDBC
+			Class.forName("com.mysql.jdbc.Driver");
+			ConnectionData cd = new ConnectionData("./connectionData.txt");
+			String params = "?useUnicode=true&amp;characterEncoding=UTF8";
+			String url = "jdbc:mysql://" + cd.hostname + ":" + cd.port + "/" + cd.dbName + params; 
+			connection = DriverManager.getConnection(url, cd.login, cd.password);
+		}
+		return connection;
+	}
+
+	private String convertListInStr(List<String>columns){
+		String res = "";
+		if(columns!=null && columns.size()>0){
+			for(String str: columns){
+				res+= res+str+",";
+			}
+			res = res.substring(0, res.length()-1);
+		}else{
+			res = "*";
+		}
+		return res;
+	}
+	
+	public List<Map<String, String>> makeConsult(String where)
+			throws SQLException, Exception {
 		List<Map<String, String>> res = new LinkedList<Map<String, String>>();
 		// Execute SQL query
 
-		String sqlQuery = "select exercisequiz.*, user.user, user.cond from exercisequiz join user on exercisequiz.id_user = user.id_user where "+ wherePartOfQuery;
-		PreparedStatement stmt = DbConnection.getConnection().prepareStatement(sqlQuery);
+		PreparedStatement stmt =
+				getConnection().prepareStatement("select exercisequiz.*, user.user, user.cond from exercisequiz join user on exercisequiz.id_user = user.id_user where "+ where);
 		ResultSet rs = stmt.executeQuery();
 
 		// Get the list of column names and store them as the first
@@ -57,13 +72,20 @@ public class MysqlToXls {
 			}
 			res.add(map);
 		}
-		DbConnection.closeConnection();
 		return res;
 	}
 
+	// Close database connection
+	public void closeConnection() throws SQLException {
+		if (this.connection != null) {
+			connection.close();
+		}
+	}
+	
 	/**
-	 * Initial attempt at documenting this method...
-	 * 
+	 * Initial attempt at documenting this method !!
+	 * Returns a list of maps of strings 
+	 * e.g. [{question1=5}, {question3=4} ...  {question7=1,2}]
 	 * 
 	 * @param json  a string of JSON taken from the DB
 	 * @param wherePartOfSqlStatementToGetData sorry for name
@@ -129,6 +151,26 @@ public class MysqlToXls {
         } 
     }
 	
+	public static boolean isJSONValid(String json) {
+		boolean result = false;
+	    try {
+	    	JsonParser parser = new JsonParser();
+			JsonElement obj = parser.parse(json);
+			if(obj != null){
+				result = true;
+			}
+	    } catch (Exception ex) {
+	    	ex.printStackTrace();
+	    }
+	    return result;
+	}
+	
+	/**
+	 * MM thinks that this methods gets all possible column dates from the results of the sql query
+	 * @param resultados
+	 * @param wherePartOfSqlStatementToGetData
+	 * @return
+	 */
 	private static List<String> getColumnsName(List<Map<String, String>> resultados, String wherePartOfSqlStatementToGetData){
 		LinkedList<String> names = new LinkedList<String>();
 		for(Map<String, String> map : resultados){
@@ -162,6 +204,15 @@ public class MysqlToXls {
 		return names;
 	}
 	
+	public static String getData(List<Map<String, String>> lista, String keyname, int index){
+		String val = "";
+		if(index < lista.size()){
+			Map<String, String> map = lista.get(index);
+			val = map.get(keyname);
+		}
+		return val;
+	}
+
 	/**
 	 * 
 	 * @param tablename
@@ -169,9 +220,10 @@ public class MysqlToXls {
 	 * @param wherePartOfSqlStatementToGetData sorry for name
 	 * @throws Exception
 	 */
-	public void generateXls(String tablename, String filename, String wherePartOfSqlStatementToGetData) throws Exception {
+	public static void generateXls(String tablename, String filename, String wherePartOfSqlStatementToGetData) throws Exception {
 		MysqlToXls mysqlToXls = new MysqlToXls();
-		List<Map<String, String>> resultados = mysqlToXls.makeQuery(wherePartOfSqlStatementToGetData);// or typeQuiz = 1");
+		List<Map<String, String>> resultados = mysqlToXls.makeConsult(wherePartOfSqlStatementToGetData);// or typeQuiz = 1");
+		mysqlToXls.closeConnection();
 		
 		// Create new Excel workbook and sheet
 		HSSFWorkbook xlsWorkbook = new HSSFWorkbook();
@@ -188,13 +240,15 @@ public class MysqlToXls {
 			xlsSheet.setColumnWidth((short) (i), (short) 4000);
 			i++;
 		}
+ 		//Go through all the results (the rows that the sql query returned??)
 		for(Map<String, String> mapping: resultados){
 			HSSFRow dataRow = xlsSheet.createRow(rowIndex++);
 			short colIndex = 0;
 			int colInd2 = 0;
+			//Go through all the column names
 			for (String colName : colNames) {
 				String value = "";
-				//System.out.println("Column: " + colName);
+				System.out.println("Column: " + colName);
 				if (colName.contains("pre")|| colName.contains("pos")){
 					colName = colName.split("-")[0];
 					String id = mapping.get("id_exercisequiz");
@@ -205,6 +259,7 @@ public class MysqlToXls {
 					}
 					List<Map<String, String>> lista = MysqlToXls.processStringJson(jsonValueInDB,wherePartOfSqlStatementToGetData);
 					if (colInd2 < lista.size()) {
+					    	//BUG: but the column name might not match the colInd !! 
 						value = lista.get(colInd2++).get(colName);
 						if ("1890".equals(id) || "1879".equals(id)) {
 							System.out.println("Column name: " + colName + " Value: " + value);
@@ -248,11 +303,58 @@ public class MysqlToXls {
 					}
 				}
 			}
-			MysqlToXls thisObject = new MysqlToXls();
-			thisObject.generateXls("", "data.xls", "exercisequiz.typeQuiz = " + number);		
+			MysqlToXls.generateXls("", "data.xls", "exercisequiz.typeQuiz = " + number);		
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
+	
+	
+	  public static void mainTest(String[] args) {
+
+	      	String wherePartOfSqlStatementToGetData = "exercisequiz.typeQuiz = 0";
+		String testJsonVal = "{\"question1\":\"5\",\"question3\":\"4\",\"question4\":\"5\",\"question5\":\"5\",\"question6\":\"3\",\"question8\":\"2\",\"question9\":\"2\",\"question10\":\"1\",\"question11\":\"1\",\"question7\":[1,2]}";
+		List<Map<String, String>> lista = MysqlToXls.processStringJson(testJsonVal,wherePartOfSqlStatementToGetData);
+	
+		
+		for(Map<String, String> map2 : lista){
+			Set<String> setit2 = map2.keySet();
+			Iterator<String> it2 = setit2.iterator();
+			while(it2.hasNext()){
+				String jsonKey = it2.next();
+			    	String added="-pre";
+				String tableKey = jsonKey+added;
+				System.out.println(tableKey);
+				System.out.println(map2.get(jsonKey));
+			}
+			
+	
+
+		}
+	  }
+
+	
 }
 
+class ConnectionData {
+	public String dbName;
+	public String login;
+	public String password;
+	public String hostname;
+	public String port;
+	
+	public ConnectionData(String filename) throws IOException {
+		try {
+			BufferedReader in = new BufferedReader(new FileReader(new File(filename)));
+			this.dbName   = in.readLine();
+			this.login    = in.readLine();
+			this.password = in.readLine();
+			this.hostname = in.readLine();
+			this.port     = in.readLine();
+			in.close();
+		} catch (IOException e) {
+			System.out.println("Invalid connection data file: " + filename + ".");
+			throw new IOException(e);
+		}
+	}
+}
